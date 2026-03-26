@@ -37,11 +37,7 @@ pip install -r requirements.txt
 ## GNS3 Setup
 
 1. Start GNS3 and ensure the GNS3 VM is running
-2. Create a project and add devices:
-   - **R1** — Cisco c7200 router
-   - **ESW1** — Cisco c2691 router **with Slot 1 = NM-16ESW** (makes it a switch)
-   - **PC1**, **PC2** — VPCS nodes
-3. Connect links: R1 → ESW1 (trunk), ESW1 → PC1, ESW1 → PC2
+2. Create a project and add devices to create topology
 4. **Start all nodes** and wait ~90 seconds for IOS to boot
 
 > **GNS3 Authentication**: If GNS3 asks for a password and you can't find it, go to **Edit → Preferences → Server** and uncheck "Protect server with password", then restart GNS3.
@@ -52,7 +48,7 @@ pip install -r requirements.txt
 
 1. Open LM Studio
 2. Go to the **Local Server** tab (`↔` icon on the left)
-3. Load any capable model (Mistral 7B, Llama 3, DeepSeek, etc.)
+3. Load any capable model (Mistral 7B, Llama 3, DeepSeek, etc.) Recommended for this Project is Qwen2.5 Coder 7B Instruct
 4. Click **Start Server** — confirm it says "Running on port 1234"
 
 ---
