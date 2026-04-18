@@ -65,15 +65,51 @@ DEVICE-SPECIFIC COMMAND FORMATS:
   - Set "encapsulation dot1Q <vlan-id>" on each subinterface.
   - Assign the gateway IP to each subinterface from the intent.
   - Physical parent interface: "no ip address" + "no shutdown".
-- Create a named extended ACL if defined in intent; apply to the correct subinterface.
-- Generate static routes ("ip route") or OSPF (process 1, area 0) per intent routing type.
 - Config MUST start with "conf t" and end with "end" then "write memory".
+
+ROUTING PROTOCOLS — implement according to intent.routing.protocol:
+  static    -> "ip route <network> <mask> <next-hop>" for each static_routes entry.
+              If no routes defined, omit (connected routes handle local subnets).
+  rip       -> "router rip", "version 2", "network <network>" for each network, "no auto-summary"
+  eigrp     -> "router eigrp <as_number>", "network <network> <wildcard>" per network, "no auto-summary"
+  ospf      -> "router ospf <process_id>", "network <network> <wildcard> area <area_id>" per network
+  bgp       -> "router bgp <as_number>", "neighbor <ip> remote-as <remote_as>", "network <network> mask <mask>"
+  mixed     -> implement ALL protocols that appear in the intent (e.g. ospf + static together)
+  connected -> no routing commands needed; directly-connected routes are automatic
+
+SECURITY — implement all entries in intent.security:
+  acls      -> for each ACL: "ip access-list extended <name>", then one statement per rule
+              ("permit/deny <protocol> <src> <src-wildcard> <dst> <dst-wildcard>")
+              Apply to interface: "interface <iface>", "ip access-group <name> in|out"
+              Multiple ACLs are fully supported — generate every one of them.
+  nat       -> if nat.enabled is true:
+              type pat/overload : "ip nat inside source list <acl> interface <outside> overload"
+              type static       : "ip nat inside source static <inside_ip> <outside_ip>"
+              type dynamic      : "ip nat pool <name> <start> <end> netmask <mask>",
+                                  "ip nat inside source list <acl> pool <name>"
+              Always mark interfaces: "ip nat inside" and "ip nat outside"
+  port_security -> per entry: "interface <iface>", "switchport port-security",
+                  "switchport port-security maximum <max_macs>",
+                  "switchport port-security violation <restrict|protect|shutdown>"
+
+SERVICES — implement if present in intent.services:
+  dhcp_pools   -> per pool: "ip dhcp excluded-address <excluded>",
+                 "ip dhcp pool <pool_name>", "network <network> <mask>",
+                 "default-router <gateway>", "dns-server <dns>"
+  ntp_server   -> "ntp server <address>"
+  syslog_server-> "logging host <address>", "logging on"
 
 --- Cisco IOS Switch (dynamips c2691 with NM-16ESW, etc.) ---
 - Create each VLAN: "vlan <id>" then "name <name>".
 - Trunk port toward router: "switchport mode trunk".
 - Host access ports: "switchport mode access" + "switchport access vlan <id>".
 - "no shutdown" all used interfaces.
+- STP — implement if intent.spanning_tree is defined:
+    mode rapid-pvst -> "spanning-tree mode rapid-pvst"
+    mode pvst       -> "spanning-tree mode pvst"
+    mode mst        -> "spanning-tree mode mst"
+    root bridge     -> "spanning-tree vlan <id> root primary" on the designated device
+- Port security per intent.security.port_security entries matching this switch.
 - Config MUST start with "conf t" and end with "end" then "write memory".
 
 --- VPCS Host Nodes (PC1, PC2, etc.) ---
@@ -85,6 +121,13 @@ Example for PC1 at 192.168.10.2/24, gateway 192.168.10.1:
   ["ip 192.168.10.2/24 192.168.10.1", "save"]
 Do NOT use "conf t", "interface", "no shutdown", or any IOS syntax for VPCS nodes.
 
+DEVICE-SPECIFIC INSTRUCTIONS:
+If intent.device_specific contains a key matching a device name, apply those
+instructions for that device. They override or supplement the general rules above.
+
+ADDITIONAL REQUIREMENTS:
+Implement anything in intent.additional_requirements as valid Cisco IOS commands.
+
 Return ONLY the raw JSON object with ALL devices included. No other text whatsoever.
 """
 
@@ -94,9 +137,11 @@ def _build_messages(intent: dict, retry_context: str = "") -> list[dict]:
     """Build the chat messages list for the LM Studio API call."""
     user_content = (
         "Generate Cisco IOS CLI configurations for all devices based on the following "
-        "network intent document.\n\n"
+        "network intent document. Implement EVERY section present in the intent: "
+        "routing (any protocol), all ACLs, NAT, DHCP pools, services, STP, "
+        "port-security, device_specific instructions, and additional_requirements.\n\n"
         f"INTENT DOCUMENT:\n{json.dumps(intent, indent=2)}\n\n"
-        "Remember: return ONLY the JSON object — no markdown, no extra text."
+        "Remember: return ONLY the raw JSON object — no markdown, no extra text."
     )
     if retry_context:
         user_content += (

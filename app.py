@@ -11,9 +11,9 @@ Routes
   GET  /api/topology        Return topology.json contents
   POST /api/intent          Submit intent wizard form data → saves intent.json
   GET  /api/intent          Return intent.json contents
-  POST /api/generate        Call Claude Sonnet → saves configs.json
+  POST /api/generate        Call Local LLM → saves configs.json
   GET  /api/configs         Return configs.json contents
-  POST /api/deploy          Deploy via Netmiko → saves deploy_logs.json
+  POST /api/deploy          via Netmiko → saves deploy_logs.json
   GET  /api/deploy          Return deploy_logs.json contents
   POST /api/validate        Run validation → saves validation.json
   GET  /api/validation      Return validation.json contents

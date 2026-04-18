@@ -258,7 +258,7 @@
   </div>
 
   <!-- ================================================================
-       STEP 2 — Intent Wizard
+       STEP 2 — Intent Wizard (Expanded — Full Network Control)
   ================================================================ -->
   <div class="card" id="card-2">
     <div class="card-header" onclick="toggleCard(2)">
@@ -268,7 +268,12 @@
     </div>
     <div class="card-body" id="cb-2">
 
-      <!-- VLANs -->
+      <div class="alert alert-info" style="margin-bottom:20px;">
+        <span class="alert-icon">ℹ️</span>
+        Fill in only the sections you need. Leave unused sections empty — the AI will only configure what you specify.
+      </div>
+
+      <!-- ── VLANs ─────────────────────────────────────────────────── -->
       <div class="form-section">
         <h3>🏷 VLAN Configuration</h3>
         <div class="col-header vlan-cols">
@@ -278,7 +283,7 @@
         <button class="btn btn-secondary btn-sm" onclick="addVlan()">+ Add VLAN</button>
       </div>
 
-      <!-- IP Plan -->
+      <!-- ── IP Addressing ─────────────────────────────────────────── -->
       <div class="form-section">
         <h3>🌐 IP Addressing Plan</h3>
         <div class="col-header ip-cols">
@@ -288,65 +293,269 @@
         <button class="btn btn-secondary btn-sm" onclick="addIp()">+ Add Interface</button>
       </div>
 
-      <!-- ACL -->
+      <!-- ── Routing ────────────────────────────────────────────────── -->
       <div class="form-section">
-        <h3>🔒 Access Control List (ACL)</h3>
-        <div class="form-row cols-3" style="margin-bottom:12px;">
+        <h3>🗺 Routing Protocol</h3>
+        <div class="form-row cols-2" style="margin-bottom:14px;">
           <div class="form-group">
-            <label>ACL Name</label>
-            <input type="text" id="aclName" placeholder="e.g. INTER_VLAN_ACL">
-          </div>
-          <div class="form-group">
-            <label>Apply to Interface</label>
-            <input type="text" id="aclIface" placeholder="e.g. GigabitEthernet0/0.20">
-          </div>
-          <div class="form-group">
-            <label>Direction</label>
-            <select id="aclDir">
-              <option value="in">inbound (in)</option>
-              <option value="out">outbound (out)</option>
-            </select>
-          </div>
-        </div>
-        <div class="col-header acl-cols">
-          <span>Action</span><span>Source CIDR</span><span>Dest CIDR</span><span>Protocol</span><span></span>
-        </div>
-        <div class="dynamic-list" id="aclList"></div>
-        <button class="btn btn-secondary btn-sm" onclick="addAcl()">+ Add Rule</button>
-      </div>
-
-      <!-- Routing -->
-      <div class="form-section">
-        <h3>🗺 Routing</h3>
-        <div class="form-row cols-2" style="margin-bottom:12px;">
-          <div class="form-group">
-            <label>Routing Type</label>
-            <select id="routingType" onchange="toggleRouting()">
+            <label>Protocol</label>
+            <select id="routingProtocol" onchange="onRoutingChange()">
+              <option value="connected">Connected Only (no routing protocol)</option>
               <option value="static">Static Routes</option>
-              <option value="ospf">OSPF (area 0)</option>
+              <option value="rip">RIP v2</option>
+              <option value="eigrp">EIGRP</option>
+              <option value="ospf">OSPF</option>
+              <option value="bgp">BGP</option>
+              <option value="mixed">Mixed (e.g. OSPF + Static)</option>
             </select>
           </div>
         </div>
-        <div id="staticRoutes">
-          <div class="col-header route-cols">
-            <span>Network (CIDR)</span><span>Next Hop IP</span><span></span>
-          </div>
+
+        <!-- Static -->
+        <div id="panel-static" class="routing-panel" style="display:none;">
+          <div class="col-header route-cols"><span>Network (CIDR)</span><span>Next Hop IP</span><span></span></div>
           <div class="dynamic-list" id="routeList"></div>
-          <button class="btn btn-secondary btn-sm" onclick="addRoute()">+ Add Route</button>
+          <button class="btn btn-secondary btn-sm" onclick="addRoute()">+ Add Static Route</button>
         </div>
-        <div id="ospfInfo" style="display:none;">
+
+        <!-- RIP -->
+        <div id="panel-rip" class="routing-panel" style="display:none;">
+          <div class="form-row cols-2">
+            <div class="form-group">
+              <label>RIP Networks (one per line, e.g. 192.168.10.0)</label>
+              <textarea id="ripNetworks" rows="4" placeholder="192.168.10.0&#10;192.168.20.0"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- EIGRP -->
+        <div id="panel-eigrp" class="routing-panel" style="display:none;">
+          <div class="form-row cols-2">
+            <div class="form-group">
+              <label>AS Number</label>
+              <input type="number" id="eigrpAs" placeholder="100">
+            </div>
+          </div>
+          <div class="form-row cols-2" style="margin-top:10px;">
+            <div class="form-group">
+              <label>Networks (CIDR, one per line)</label>
+              <textarea id="eigrpNetworks" rows="4" placeholder="192.168.10.0/24&#10;192.168.20.0/24"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- OSPF -->
+        <div id="panel-ospf" class="routing-panel" style="display:none;">
+          <div class="form-row cols-2">
+            <div class="form-group">
+              <label>Process ID</label>
+              <input type="number" id="ospfPid" placeholder="1" value="1">
+            </div>
+            <div class="form-group">
+              <label>Default Area ID</label>
+              <input type="number" id="ospfArea" placeholder="0" value="0">
+            </div>
+          </div>
+          <div class="form-row cols-2" style="margin-top:10px;">
+            <div class="form-group">
+              <label>Networks (CIDR, one per line)</label>
+              <textarea id="ospfNetworks" rows="4" placeholder="192.168.10.0/24&#10;192.168.20.0/24"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- BGP -->
+        <div id="panel-bgp" class="routing-panel" style="display:none;">
+          <div class="form-row cols-2">
+            <div class="form-group">
+              <label>Local AS Number</label>
+              <input type="number" id="bgpAs" placeholder="65001">
+            </div>
+          </div>
+          <div style="margin-top:10px;">
+            <div class="col-header" style="grid-template-columns:160px 100px auto;display:grid;gap:8px;padding:0 10px;margin-bottom:4px;">
+              <span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;">Neighbor IP</span>
+              <span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;">Remote AS</span>
+              <span></span>
+            </div>
+            <div class="dynamic-list" id="bgpNeighborList"></div>
+            <button class="btn btn-secondary btn-sm" onclick="addBgpNeighbor()">+ Add Neighbor</button>
+          </div>
+          <div class="form-row cols-2" style="margin-top:12px;">
+            <div class="form-group">
+              <label>Advertised Networks (CIDR, one per line)</label>
+              <textarea id="bgpNetworks" rows="3" placeholder="192.168.10.0/24"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mixed -->
+        <div id="panel-mixed" class="routing-panel" style="display:none;">
           <div class="alert alert-info"><span class="alert-icon">ℹ️</span>
-            OSPF process 1 will be configured in area 0. Claude will generate network statements based on your IP plan.
+            Fill in any combination of the protocol sections below. All filled sections will be included.
+          </div>
+          <div style="margin-bottom:10px;">
+            <b style="font-size:12px;color:var(--accent);">Static Routes</b>
+            <div class="col-header route-cols" style="margin-top:6px;"><span>Network (CIDR)</span><span>Next Hop IP</span><span></span></div>
+            <div class="dynamic-list" id="mixedRouteList"></div>
+            <button class="btn btn-secondary btn-sm" onclick="addMixedRoute()">+ Add Static Route</button>
+          </div>
+          <div class="form-row cols-2" style="margin-top:12px;">
+            <div class="form-group">
+              <label>OSPF Process ID (leave blank to skip OSPF)</label>
+              <input type="number" id="mixedOspfPid" placeholder="1">
+            </div>
+            <div class="form-group">
+              <label>OSPF Area</label>
+              <input type="number" id="mixedOspfArea" placeholder="0" value="0">
+            </div>
+          </div>
+          <div class="form-row cols-2">
+            <div class="form-group">
+              <label>OSPF Networks (CIDR, one per line)</label>
+              <textarea id="mixedOspfNetworks" rows="3" placeholder="192.168.10.0/24"></textarea>
+            </div>
+            <div class="form-group">
+              <label>EIGRP AS Number (leave blank to skip EIGRP)</label>
+              <input type="number" id="mixedEigrpAs" placeholder="100">
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /routing -->
+
+      <!-- ── Security: ACLs ─────────────────────────────────────────── -->
+      <div class="form-section">
+        <h3>🔒 Access Control Lists (ACLs)</h3>
+        <p style="color:var(--muted);font-size:12px;margin-bottom:12px;">Add as many ACLs as you need. Each ACL can be applied to a different interface.</p>
+        <div id="aclContainer"></div>
+        <button class="btn btn-secondary btn-sm" onclick="addAcl()">+ Add ACL</button>
+      </div>
+
+      <!-- ── Security: NAT ──────────────────────────────────────────── -->
+      <div class="form-section">
+        <h3>🌍 NAT / PAT</h3>
+        <div class="form-row cols-2">
+          <div class="form-group">
+            <label>Enable NAT</label>
+            <select id="natEnabled" onchange="onNatChange()">
+              <option value="false">Disabled</option>
+              <option value="true">Enabled</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>NAT Type</label>
+            <select id="natType">
+              <option value="pat">PAT / Overload (most common)</option>
+              <option value="static">Static NAT (1:1)</option>
+              <option value="dynamic">Dynamic NAT (pool)</option>
+            </select>
+          </div>
+        </div>
+        <div id="natDetails" style="display:none;">
+          <div class="form-row cols-2">
+            <div class="form-group">
+              <label>Inside Interface (e.g. GigabitEthernet0/0)</label>
+              <input type="text" id="natInside" placeholder="GigabitEthernet0/0">
+            </div>
+            <div class="form-group">
+              <label>Outside Interface (e.g. GigabitEthernet0/1)</label>
+              <input type="text" id="natOutside" placeholder="GigabitEthernet0/1">
+            </div>
+          </div>
+          <div class="form-row cols-2">
+            <div class="form-group">
+              <label>ACL Name for NAT (matches traffic to translate)</label>
+              <input type="text" id="natAcl" placeholder="NAT_ACL">
+            </div>
+            <div class="form-group">
+              <label>NAT Pool Range (for dynamic NAT, e.g. 10.0.0.1-10.0.0.10/30)</label>
+              <input type="text" id="natPool" placeholder="10.0.0.1-10.0.0.10/30">
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Constraints -->
+      <!-- ── Security: Port Security ───────────────────────────────── -->
       <div class="form-section">
-        <h3>📝 Additional Constraints (Optional)</h3>
+        <h3>🔐 Port Security</h3>
+        <p style="color:var(--muted);font-size:12px;margin-bottom:12px;">Restrict which MAC addresses are allowed on a switchport.</p>
+        <div class="col-header" style="grid-template-columns:120px 180px 80px 130px auto;display:grid;gap:8px;padding:0 10px;margin-bottom:4px;">
+          <span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;">Device</span>
+          <span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;">Interface</span>
+          <span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;">Max MACs</span>
+          <span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;">Violation</span>
+          <span></span>
+        </div>
+        <div class="dynamic-list" id="portSecList"></div>
+        <button class="btn btn-secondary btn-sm" onclick="addPortSec()">+ Add Port Security</button>
+      </div>
+
+      <!-- ── Services: DHCP ─────────────────────────────────────────── -->
+      <div class="form-section">
+        <h3>📡 DHCP Server Pools</h3>
+        <p style="color:var(--muted);font-size:12px;margin-bottom:12px;">Configure R1 as a DHCP server for one or more subnets.</p>
+        <div id="dhcpContainer"></div>
+        <button class="btn btn-secondary btn-sm" onclick="addDhcp()">+ Add DHCP Pool</button>
+      </div>
+
+      <!-- ── Services: NTP & Syslog ─────────────────────────────────── -->
+      <div class="form-section">
+        <h3>⏱ Network Services</h3>
+        <div class="form-row cols-2">
+          <div class="form-group">
+            <label>NTP Server IP (leave blank to skip)</label>
+            <input type="text" id="ntpServer" placeholder="e.g. 192.168.1.100 or pool.ntp.org">
+          </div>
+          <div class="form-group">
+            <label>Syslog Server IP (leave blank to skip)</label>
+            <input type="text" id="syslogServer" placeholder="e.g. 192.168.1.200">
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Spanning Tree ──────────────────────────────────────────── -->
+      <div class="form-section">
+        <h3>🌲 Spanning Tree Protocol (STP)</h3>
+        <div class="form-row cols-3">
+          <div class="form-group">
+            <label>STP Mode</label>
+            <select id="stpMode">
+              <option value="">Default (do not configure)</option>
+              <option value="rapid-pvst">Rapid PVST+</option>
+              <option value="pvst">PVST</option>
+              <option value="mst">MST</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Root Bridge Device Name</label>
+            <input type="text" id="stpRoot" placeholder="e.g. ESW1">
+          </div>
+          <div class="form-group">
+            <label>Root VLANs (comma-sep, e.g. 10,20)</label>
+            <input type="text" id="stpVlans" placeholder="10,20,30">
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Per-Device Instructions ───────────────────────────────── -->
+      <div class="form-section">
+        <h3>🖥 Per-Device Specific Instructions</h3>
+        <p style="color:var(--muted);font-size:12px;margin-bottom:12px;">
+          Type any device-specific requirement. These override the general rules for that device only.
+          Example: "Enable CDP logging", "Configure HSRP on Gi0/1", "Add banner motd".
+        </p>
+        <div id="deviceSpecificContainer"></div>
+        <button class="btn btn-secondary btn-sm" onclick="addDeviceInstruction()">+ Add Device Instruction</button>
+      </div>
+
+      <!-- ── Additional Requirements ───────────────────────────────── -->
+      <div class="form-section">
+        <h3>📝 Additional Requirements</h3>
         <div class="form-group">
-          <label>Free-text constraints or special requirements</label>
-          <textarea id="constraints" rows="3" placeholder="e.g. Use ip helper-address for DHCP, enable CDP, set interface descriptions..."></textarea>
+          <label>Global free-text — anything not covered above (any Cisco feature)</label>
+          <textarea id="additionalReqs" rows="4"
+            placeholder="e.g. Enable DHCP snooping on all VLANs on ESW1. Configure ip helper-address on R1 subinterfaces. Add interface descriptions. Enable logging buffered 10000. Use HSRP for gateway redundancy between R1 and R2..."></textarea>
         </div>
       </div>
 
@@ -359,6 +568,7 @@
       <div id="intentErrors" style="display:none;margin-top:14px;"></div>
     </div>
   </div>
+
 
   <!-- ================================================================
        STEP 3 — AI Config Generation
@@ -653,20 +863,12 @@ function addIp(v = {}) {
   list.appendChild(row);
 }
 
-function addAcl(v = {}) {
-  const list = $('aclList');
-  const row = document.createElement('div');
-  row.className = 'dynamic-row acl-row';
-  row.innerHTML = `
-    <select data-field="action">
-      <option value="deny" ${v.action==='deny'?'selected':''}>deny</option>
-      <option value="permit" ${v.action==='permit'?'selected':''}>permit</option>
-    </select>
-    <input type="text" placeholder="192.168.10.0/24" value="${v.src||''}" data-field="src">
-    <input type="text" placeholder="192.168.20.0/24" value="${v.dst||''}" data-field="dst">
-    <input type="text" placeholder="ip" value="${v.protocol||'ip'}" data-field="protocol">
-    <button class="remove-btn" onclick="this.parentElement.remove()">✕</button>`;
-  list.appendChild(row);
+// ── Routing helpers ──────────────────────────────────────────────────────────
+function onRoutingChange() {
+  const proto = $('routingProtocol').value;
+  document.querySelectorAll('.routing-panel').forEach(p => p.style.display = 'none');
+  const panel = $('panel-' + proto);
+  if (panel) panel.style.display = 'block';
 }
 
 function addRoute(v = {}) {
@@ -680,12 +882,201 @@ function addRoute(v = {}) {
   list.appendChild(row);
 }
 
-function toggleRouting() {
-  const t = $('routingType').value;
-  $('staticRoutes').style.display = t === 'static' ? 'block' : 'none';
-  $('ospfInfo').style.display = t === 'ospf' ? 'block' : 'none';
+function addMixedRoute(v = {}) {
+  const list = $('mixedRouteList');
+  const row = document.createElement('div');
+  row.className = 'dynamic-row route-row';
+  row.innerHTML = `
+    <input type="text" placeholder="0.0.0.0/0" value="${v.network||''}" data-field="network">
+    <input type="text" placeholder="10.0.0.1" value="${v.next_hop||''}" data-field="next_hop">
+    <button class="remove-btn" onclick="this.parentElement.remove()">✕</button>`;
+  list.appendChild(row);
 }
 
+function addBgpNeighbor(v = {}) {
+  const list = $('bgpNeighborList');
+  const row = document.createElement('div');
+  row.className = 'dynamic-row';
+  row.style.cssText = 'grid-template-columns:160px 100px auto;';
+  row.innerHTML = `
+    <input type="text" placeholder="10.0.0.1" value="${v.ip||''}" data-field="ip">
+    <input type="number" placeholder="65002" value="${v.remote_as||''}" data-field="remote_as">
+    <button class="remove-btn" onclick="this.parentElement.remove()">✕</button>`;
+  list.appendChild(row);
+}
+
+// ── ACL helpers (multiple ACLs) ───────────────────────────────────────────────
+let aclCounter = 0;
+function addAcl(aclData = {}) {
+  const id = ++aclCounter;
+  const container = $('aclContainer');
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = 'background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:12px;';
+  wrapper.dataset.aclId = id;
+  wrapper.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <b style="color:var(--accent);font-size:12px;">ACL #${id}</b>
+      <button class="remove-btn" style="font-size:13px;" onclick="this.closest('[data-acl-id]').remove()">✕ Remove ACL</button>
+    </div>
+    <div class="form-row cols-3" style="margin-bottom:10px;">
+      <div class="form-group">
+        <label>ACL Name</label>
+        <input type="text" data-acl-field="name" value="${aclData.name||''}" placeholder="e.g. BLOCK_SALES">
+      </div>
+      <div class="form-group">
+        <label>Apply to Interface</label>
+        <input type="text" data-acl-field="interface_applied" value="${aclData.interface_applied||''}" placeholder="e.g. GigabitEthernet0/0.10">
+      </div>
+      <div class="form-group">
+        <label>Direction</label>
+        <select data-acl-field="direction">
+          <option value="in" ${(aclData.direction||'in')==='in'?'selected':''}>inbound (in)</option>
+          <option value="out" ${aclData.direction==='out'?'selected':''}>outbound (out)</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:grid;gap:8px;padding:0 2px;grid-template-columns:80px 160px 160px 100px auto;margin-bottom:4px;">
+      <span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;">Action</span>
+      <span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;">Source CIDR</span>
+      <span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;">Dest CIDR</span>
+      <span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;">Protocol</span>
+      <span></span>
+    </div>
+    <div class="dynamic-list" data-acl-rules="${id}"></div>
+    <button class="btn btn-secondary btn-sm" style="margin-top:6px;" onclick="addAclRule(${id})">+ Add Rule</button>`;
+  container.appendChild(wrapper);
+  (aclData.rules || []).forEach(r => addAclRule(id, r));
+}
+
+function addAclRule(aclId, v = {}) {
+  const list = document.querySelector(`[data-acl-rules="${aclId}"]`);
+  if (!list) return;
+  const row = document.createElement('div');
+  row.className = 'dynamic-row';
+  row.style.cssText = 'grid-template-columns:80px 160px 160px 100px auto;';
+  row.innerHTML = `
+    <select data-field="action">
+      <option value="deny" ${v.action==='deny'?'selected':''}>deny</option>
+      <option value="permit" ${v.action==='permit'?'selected':''}>permit</option>
+    </select>
+    <input type="text" placeholder="192.168.10.0/24 or any" value="${v.src||''}" data-field="src">
+    <input type="text" placeholder="192.168.20.0/24 or any" value="${v.dst||''}" data-field="dst">
+    <input type="text" placeholder="ip" value="${v.protocol||'ip'}" data-field="protocol">
+    <button class="remove-btn" onclick="this.parentElement.remove()">✕</button>`;
+  list.appendChild(row);
+}
+
+function readAcls() {
+  const acls = [];
+  document.querySelectorAll('#aclContainer [data-acl-id]').forEach(wrapper => {
+    const name = wrapper.querySelector('[data-acl-field="name"]').value.trim();
+    if (!name) return;
+    const rules = [];
+    wrapper.querySelectorAll('[data-acl-rules] .dynamic-row').forEach(row => {
+      const obj = {};
+      row.querySelectorAll('[data-field]').forEach(el => { obj[el.dataset.field] = el.value.trim(); });
+      rules.push(obj);
+    });
+    acls.push({
+      name,
+      interface_applied: wrapper.querySelector('[data-acl-field="interface_applied"]').value.trim(),
+      direction: wrapper.querySelector('[data-acl-field="direction"]').value,
+      rules,
+    });
+  });
+  return acls;
+}
+
+// ── NAT ────────────────────────────────────────────────────────────────────
+function onNatChange() {
+  $('natDetails').style.display = $('natEnabled').value === 'true' ? 'block' : 'none';
+}
+
+// ── Port Security ──────────────────────────────────────────────────────────
+function addPortSec(v = {}) {
+  const list = $('portSecList');
+  const row = document.createElement('div');
+  row.className = 'dynamic-row';
+  row.style.cssText = 'grid-template-columns:120px 180px 80px 130px auto;';
+  row.innerHTML = `
+    <input type="text" placeholder="ESW1" value="${v.device||''}" data-field="device">
+    <input type="text" placeholder="FastEthernet1/1" value="${v.interface||''}" data-field="interface">
+    <input type="number" placeholder="1" value="${v.max_macs||1}" data-field="max_macs" min="1">
+    <select data-field="violation">
+      <option value="restrict" ${v.violation==='restrict'?'selected':''}>restrict</option>
+      <option value="protect" ${v.violation==='protect'?'selected':''}>protect</option>
+      <option value="shutdown" ${v.violation==='shutdown'?'selected':''}>shutdown</option>
+    </select>
+    <button class="remove-btn" onclick="this.parentElement.remove()">✕</button>`;
+  list.appendChild(row);
+}
+
+// ── DHCP ──────────────────────────────────────────────────────────────────
+let dhcpCounter = 0;
+function addDhcp(pool = {}) {
+  const id = ++dhcpCounter;
+  const container = $('dhcpContainer');
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = 'background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:12px;';
+  wrapper.dataset.dhcpId = id;
+  wrapper.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <b style="color:var(--accent);font-size:12px;">DHCP Pool #${id}</b>
+      <button class="remove-btn" style="font-size:13px;" onclick="this.closest('[data-dhcp-id]').remove()">✕ Remove Pool</button>
+    </div>
+    <div class="form-row cols-3">
+      <div class="form-group"><label>Pool Name</label><input type="text" data-dhcp-field="pool_name" value="${pool.pool_name||''}" placeholder="SALES_POOL"></div>
+      <div class="form-group"><label>Device (router)</label><input type="text" data-dhcp-field="device" value="${pool.device||'R1'}" placeholder="R1"></div>
+      <div class="form-group"><label>Network (CIDR)</label><input type="text" data-dhcp-field="network" value="${pool.network||''}" placeholder="192.168.10.0/24"></div>
+    </div>
+    <div class="form-row cols-3">
+      <div class="form-group"><label>Default Gateway</label><input type="text" data-dhcp-field="gateway" value="${pool.gateway||''}" placeholder="192.168.10.1"></div>
+      <div class="form-group"><label>DNS Server</label><input type="text" data-dhcp-field="dns" value="${pool.dns||'8.8.8.8'}" placeholder="8.8.8.8"></div>
+      <div class="form-group"><label>Excluded IPs (comma-sep)</label><input type="text" data-dhcp-field="excluded" value="${(pool.excluded||[]).join(', ')}" placeholder="192.168.10.1, 192.168.10.2"></div>
+    </div>`;
+  container.appendChild(wrapper);
+}
+
+function readDhcpPools() {
+  const pools = [];
+  document.querySelectorAll('#dhcpContainer [data-dhcp-id]').forEach(wrapper => {
+    const f = field => wrapper.querySelector(`[data-dhcp-field="${field}"]`).value.trim();
+    if (!f('pool_name')) return;
+    pools.push({
+      pool_name: f('pool_name'),
+      device: f('device'),
+      network: f('network'),
+      gateway: f('gateway'),
+      dns: f('dns'),
+      excluded: f('excluded').split(',').map(s=>s.trim()).filter(Boolean),
+    });
+  });
+  return pools;
+}
+
+// ── Per-device instructions ────────────────────────────────────────────────
+function addDeviceInstruction(entry = {}) {
+  const container = $('deviceSpecificContainer');
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = 'display:grid;grid-template-columns:140px 1fr auto;gap:8px;align-items:start;margin-bottom:8px;';
+  wrapper.innerHTML = `
+    <input type="text" placeholder="Device (e.g. R1)" value="${entry.device||''}" data-di-device>
+    <textarea placeholder="e.g. Configure HSRP on Gi0/1 with virtual IP 192.168.10.254. Enable DHCP snooping on VLAN 10." rows="2" data-di-text>${entry.text||''}</textarea>
+    <button class="remove-btn" onclick="this.parentElement.remove()">✕</button>`;
+  container.appendChild(wrapper);
+}
+
+function readDeviceSpecific() {
+  const result = {};
+  document.querySelectorAll('#deviceSpecificContainer [data-di-device]').forEach(el => {
+    const device = el.value.trim();
+    const text = el.parentElement.querySelector('[data-di-text]').value.trim();
+    if (device && text) result[device] = text;
+  });
+  return result;
+}
+
+// ── readRows (generic) ─────────────────────────────────────────────────────
 function readRows(listId) {
   const rows = [];
   document.querySelectorAll(`#${listId} .dynamic-row`).forEach(row => {
@@ -698,6 +1089,7 @@ function readRows(listId) {
   return rows;
 }
 
+// ── collectIntent — assembles the full expanded intent ─────────────────────
 function collectIntent() {
   const vlans = readRows('vlanList').map(v => ({
     id: parseInt(v.id) || 0,
@@ -710,23 +1102,86 @@ function collectIntent() {
     ip: v.ip, mask: v.mask, description: v.description,
   }));
 
-  const aclRules = readRows('aclList').map(v => ({
-    action: v.action, src: v.src, dst: v.dst, protocol: v.protocol || 'ip',
-  }));
+  // ── Routing ────────────────────────────────────────────────────────────
+  const protocol = $('routingProtocol').value;
+  const routing = { protocol };
 
-  const acl = {
-    name: $('aclName').value.trim(),
-    interface_applied: $('aclIface').value.trim(),
-    direction: $('aclDir').value,
-    rules: aclRules,
+  if (protocol === 'static') {
+    routing.static_routes = readRows('routeList').map(v => ({ network: v.network, next_hop: v.next_hop }));
+  } else if (protocol === 'rip') {
+    routing.rip = {
+      version: 2,
+      networks: ($('ripNetworks').value||'').split('\n').map(s=>s.trim()).filter(Boolean),
+    };
+  } else if (protocol === 'eigrp') {
+    routing.eigrp = {
+      as_number: parseInt($('eigrpAs').value) || 100,
+      networks: ($('eigrpNetworks').value||'').split('\n').map(s=>s.trim()).filter(Boolean),
+    };
+  } else if (protocol === 'ospf') {
+    routing.ospf = {
+      process_id: parseInt($('ospfPid').value) || 1,
+      areas: [{ id: parseInt($('ospfArea').value) || 0 }],
+      networks: ($('ospfNetworks').value||'').split('\n').map(s=>s.trim()).filter(Boolean)
+        .map(n => ({ network: n, area: parseInt($('ospfArea').value) || 0 })),
+    };
+  } else if (protocol === 'bgp') {
+    routing.bgp = {
+      as_number: parseInt($('bgpAs').value) || 65001,
+      neighbors: readRows('bgpNeighborList').map(v => ({ ip: v.ip, remote_as: parseInt(v.remote_as) })),
+      networks: ($('bgpNetworks').value||'').split('\n').map(s=>s.trim()).filter(Boolean),
+    };
+  } else if (protocol === 'mixed') {
+    routing.static_routes = readRows('mixedRouteList').map(v => ({ network: v.network, next_hop: v.next_hop }));
+    const ospfPid = parseInt($('mixedOspfPid').value);
+    if (ospfPid) routing.ospf = {
+      process_id: ospfPid,
+      areas: [{ id: parseInt($('mixedOspfArea').value) || 0 }],
+      networks: ($('mixedOspfNetworks').value||'').split('\n').map(s=>s.trim()).filter(Boolean)
+        .map(n => ({ network: n, area: parseInt($('mixedOspfArea').value) || 0 })),
+    };
+    const eigrpAs = parseInt($('mixedEigrpAs').value);
+    if (eigrpAs) routing.eigrp = { as_number: eigrpAs, networks: [] };
+  }
+
+  // ── Security ───────────────────────────────────────────────────────────
+  const natEnabled = $('natEnabled').value === 'true';
+  const security = {
+    acls: readAcls(),
+    nat: {
+      enabled: natEnabled,
+      type: $('natType').value,
+      inside_interface: natEnabled ? $('natInside').value.trim() : '',
+      outside_interface: natEnabled ? $('natOutside').value.trim() : '',
+      acl_name: natEnabled ? $('natAcl').value.trim() : '',
+      pool: natEnabled ? $('natPool').value.trim() : '',
+    },
+    port_security: readRows('portSecList').map(v => ({
+      device: v.device, interface: v.interface,
+      max_macs: parseInt(v.max_macs) || 1, violation: v.violation,
+    })),
   };
 
-  const routingType = $('routingType').value;
-  const routes = routingType === 'static' ? readRows('routeList').map(v => ({
-    network: v.network, next_hop: v.next_hop,
-  })) : [];
+  // ── Services ───────────────────────────────────────────────────────────
+  const services = {
+    dhcp_pools: readDhcpPools(),
+    ntp_server: $('ntpServer').value.trim(),
+    syslog_server: $('syslogServer').value.trim(),
+  };
 
-  return { vlans, ip_plan, acl, routing: { type: routingType, routes }, constraints: $('constraints').value.trim() };
+  // ── STP ────────────────────────────────────────────────────────────────
+  const stpMode = $('stpMode').value;
+  const spanning_tree = stpMode ? {
+    mode: stpMode,
+    root_bridge: $('stpRoot').value.trim(),
+    root_vlans: $('stpVlans').value.split(',').map(s=>parseInt(s.trim())).filter(Boolean),
+  } : {};
+
+  // ── Per-device + freeform ──────────────────────────────────────────────
+  const device_specific = readDeviceSpecific();
+  const additional_requirements = $('additionalReqs').value.trim();
+
+  return { vlans, ip_plan, routing, security, services, spanning_tree, device_specific, additional_requirements };
 }
 
 async function submitIntent() {
@@ -738,12 +1193,7 @@ async function submitIntent() {
     showAlert('Intent saved successfully! Proceed to Step 3.', 'success');
     await refreshStatus();
   } catch (e) {
-    if (e.message && e.message.includes('validation')) {
-      // Try reparsing for validation_errors
-      errDiv.innerHTML = `<div class="alert alert-error"><span class="alert-icon">❌</span>${e.message}</div>`;
-    } else {
-      errDiv.innerHTML = `<div class="alert alert-error"><span class="alert-icon">❌</span>${e.message}</div>`;
-    }
+    errDiv.innerHTML = `<div class="alert alert-error"><span class="alert-icon">❌</span>${e.message}</div>`;
     errDiv.style.display = 'block';
   }
 }
@@ -751,25 +1201,58 @@ async function submitIntent() {
 async function preloadIntent() {
   try {
     const data = await api('GET', '/api/intent');
-    // Populate form from saved intent
     $('vlanList').innerHTML = '';
     (data.vlans || []).forEach(v => addVlan(v));
     $('ipList').innerHTML = '';
     (data.ip_plan || []).forEach(v => addIp(v));
-    $('aclList').innerHTML = '';
-    const acl = data.acl || {};
-    $('aclName').value = acl.name || '';
-    $('aclIface').value = acl.interface_applied || '';
-    $('aclDir').value = acl.direction || 'in';
-    (acl.rules || []).forEach(v => addAcl(v));
-    $('routeList').innerHTML = '';
+
+    // Routing
     const routing = data.routing || {};
-    $('routingType').value = routing.type || 'static';
-    toggleRouting();
-    (routing.routes || []).forEach(v => addRoute(v));
-    $('constraints').value = data.constraints || '';
+    const proto = routing.protocol || routing.type || 'static';
+    if ($('routingProtocol')) $('routingProtocol').value = proto;
+    onRoutingChange();
+    if (proto === 'static') (routing.static_routes || routing.routes || []).forEach(v => addRoute(v));
+
+    // ACLs
+    $('aclContainer').innerHTML = ''; aclCounter = 0;
+    const security = data.security || {};
+    // support both new multi-ACL and old single-ACL schema
+    const acls = security.acls || (data.acl && data.acl.name ? [data.acl] : []);
+    acls.forEach(a => addAcl(a));
+
+    // NAT
+    if (security.nat && security.nat.enabled) {
+      $('natEnabled').value = 'true'; onNatChange();
+      $('natType').value = security.nat.type || 'pat';
+      $('natInside').value = security.nat.inside_interface || '';
+      $('natOutside').value = security.nat.outside_interface || '';
+      $('natAcl').value = security.nat.acl_name || '';
+      $('natPool').value = security.nat.pool || '';
+    }
+
+    // Port security
+    $('portSecList').innerHTML = '';
+    (security.port_security || []).forEach(v => addPortSec(v));
+
+    // DHCP
+    $('dhcpContainer').innerHTML = ''; dhcpCounter = 0;
+    ((data.services || {}).dhcp_pools || []).forEach(p => addDhcp(p));
+    $('ntpServer').value = (data.services || {}).ntp_server || '';
+    $('syslogServer').value = (data.services || {}).syslog_server || '';
+
+    // STP
+    const stp = data.spanning_tree || {};
+    if ($('stpMode')) $('stpMode').value = stp.mode || '';
+    if ($('stpRoot')) $('stpRoot').value = stp.root_bridge || '';
+    if ($('stpVlans')) $('stpVlans').value = (stp.root_vlans || []).join(', ');
+
+    // Per-device
+    $('deviceSpecificContainer').innerHTML = '';
+    Object.entries(data.device_specific || {}).forEach(([device, text]) => addDeviceInstruction({device, text}));
+    $('additionalReqs').value = data.additional_requirements || data.constraints || '';
   } catch (e) { /* not yet saved */ }
 }
+
 
 // ===========================================================================
 // Step 3 – AI Config Generation
